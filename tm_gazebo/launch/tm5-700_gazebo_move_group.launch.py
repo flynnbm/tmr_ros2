@@ -225,14 +225,13 @@ def generate_launch_description():
     # Launching all the nodes
     return LaunchDescription(
         [
-            gz_sim_bullet_featherstone,
+            gz_sim_DART,
             bridge,
             rviz_node,
-            # static_tf,
+            static_tf,
             robot_state_publisher,
             run_move_group_node,
             load_arm_controller,
-            load_hand_controller,
             set_sim_time,
         ]
     )
