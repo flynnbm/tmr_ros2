@@ -434,6 +434,26 @@
       <self_collide>true</self_collide>
     </link>
 
+    <joint name='base_fixed_joint' type="fixed">
+      <pose relative_to="base">0 0 0 0 0 0</pose>
+      <parent>base</parent>
+      <child>link_0</child>
+    </joint>
+
+    <link name='link_0'>
+      <pose relative_to="base_fixed_joint">0 0 0 0 0 0</pose>
+    </link>
+
+    <joint name='flange_fixed_joint' type="fixed">
+      <pose relative_to="link_6">0 0 0 0 0 0</pose>
+      <parent>link_6</parent>
+      <child>flange</child>
+    </joint>
+
+    <link name='flange'>
+      <pose relative_to="flange_fixed_joint">0 0 0 0 0 0</pose>
+    </link>
+
     <ros2_control name="MyRobotHardware" type="system">
         <hardware>
             <plugin>gz_ros2_control/GazeboSimSystem</plugin>
@@ -442,54 +462,56 @@
         <!-- List all joints with control interfaces -->
         <joint name="joint_1">
             <command_interface name="position"/>
-            <state_interface name="position"/>
+            <state_interface name="position">
+              <param name="initial_value">0.0</param>
+            </state_interface>
             <state_interface name="velocity"/>
         </joint>
 
         <joint name="joint_2">
             <command_interface name="position"/>
-            <state_interface name="position"/>
+            <state_interface name="position">
+              <param name="initial_value">0.0</param>
+            </state_interface>
             <state_interface name="velocity"/>
         </joint>
 
         <joint name="joint_3">
             <command_interface name="position"/>
-            <state_interface name="position"/>
+            <state_interface name="position">
+              <param name="initial_value">0.0</param>
+            </state_interface>
             <state_interface name="velocity"/>
         </joint>
 
         <joint name="joint_4">
             <command_interface name="position"/>
-            <state_interface name="position"/>
+            <state_interface name="position">
+              <param name="initial_value">0.0</param>
+            </state_interface>
             <state_interface name="velocity"/>
         </joint>
 
         <joint name="joint_5">
             <command_interface name="position"/>
-            <state_interface name="position"/>
+            <state_interface name="position">
+              <param name="initial_value">0.0</param>
+            </state_interface>
             <state_interface name="velocity"/>
         </joint>
 
         <joint name="joint_6">
             <command_interface name="position"/>
-            <state_interface name="position"/>
+            <state_interface name="position">
+              <param name="initial_value">0.0</param>
+            </state_interface>
             <state_interface name="velocity"/>
         </joint>
     </ros2_control>
 
     <plugin name='gz_ros2_control::GazeboSimROS2ControlPlugin' filename='libgz_ros2_control-system.so'>
-      <!-- <parameters>package://tm5-700_moveit_config/config/ros2_controllers.yaml</parameters> -->
-      <parameters>package://tm5-700_moveit_config/config/controllers.yaml</parameters>
+      <parameters>/home/brian/arm_driver_ws/install/tm5-700_moveit_config/share/tm5-700_moveit_config/config/controllers.yaml</parameters>
     </plugin>
 
-
-    <frame name='base_fixed_joint' attached_to='base'>
-      <pose>0 0 0 0 -0 0</pose>
-    </frame>
-    <frame name='link_0' attached_to='base_fixed_joint'/>
-    <frame name='flange_fixed_joint' attached_to='link_6'>
-      <pose>0 0 0 0 -0 0</pose>
-    </frame>
-    <frame name='flange' attached_to='flange_fixed_joint'/>
   </model>
 </sdf>
