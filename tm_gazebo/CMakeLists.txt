@@ -11,6 +11,35 @@ find_package(ament_cmake REQUIRED)
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
 
+# Install project launch files
+install(
+  DIRECTORY
+    models/
+  DESTINATION share/${PROJECT_NAME}/models
+)
+
+# Install project launch files
+install(
+  DIRECTORY
+    launch/
+  DESTINATION share/${PROJECT_NAME}/launch
+)
+
+# Install project configuration files
+install(
+  DIRECTORY
+    config/
+  DESTINATION share/${PROJECT_NAME}/config
+)
+
+# Following 'install' directive ensures that the 'worlds' subfolder
+# will be copied to the 'share/ros_gz_example_gazebo/worlds'
+# subfolder of the installation directory.
+install(
+  DIRECTORY worlds/
+  DESTINATION share/${PROJECT_NAME}/worlds
+)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights
@@ -22,5 +51,7 @@ if(BUILD_TESTING)
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
+
+ament_environment_hooks("${CMAKE_CURRENT_SOURCE_DIR}/hooks/${PROJECT_NAME}.dsv.in")
 
 ament_package()
