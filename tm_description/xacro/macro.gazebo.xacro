@@ -3,25 +3,6 @@
 
   <xacro:macro name="tmr_gazebo" params="ns prefix">
 
-    <!-- <gazebo reference="${prefix}link_1">
-      <selfCollide>true</selfCollide>
-    </gazebo>
-    <gazebo reference="${prefix}link_2">
-      <selfCollide>true</selfCollide>
-    </gazebo>
-    <gazebo reference="${prefix}link_3">
-      <selfCollide>true</selfCollide>
-    </gazebo>
-    <gazebo reference="${prefix}link_4">
-      <selfCollide>true</selfCollide>
-    </gazebo>
-    <gazebo reference="${prefix}link_5">
-      <selfCollide>true</selfCollide>
-    </gazebo>
-    <gazebo reference="${prefix}link_6">
-      <selfCollide>true</selfCollide>
-    </gazebo> -->
-
     <gazebo>
       <plugin name='gz_ros2_control::GazeboSimROS2ControlPlugin' filename='libgz_ros2_control-system.so'>
         <parameters>$(find tm5-700_moveit_config)/config/ros2_controllers.yaml</parameters>
