@@ -1,104 +1,96 @@
-############################################################################################### 
-#  tm5-700_run_move_group.launch.py
-#   
-#  Various portions of the code are based on original source from 
-#  The reference: "https://github.com/moveit/moveit2/tree/main/moveit_ros/moveit_servo/launch"
-#  and are used in accordance with the following license.
-#  "https://github.com/moveit/moveit2/blob/main/LICENSE.txt"
-############################################################################################### 
-
 import os
 import sys
-
-from ament_index_python.packages import get_package_share_directory
-from launch import LaunchDescription
-import launch_ros
-from launch_ros.actions import Node
-
 import xacro
 import yaml
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
-from launch.actions import IncludeLaunchDescription
-from launch.conditions import IfCondition
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.substitutions import LaunchConfiguration
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch_ros.actions import Node, SetParameter, LoadComposableNodes, ComposableNodeContainer
+from ament_index_python.packages import get_package_share_directory
 
-from launch_ros.actions import SetParameter
+from launch.actions import IncludeLaunchDescription
 
 def load_file(package_name, file_path):
     package_path = get_package_share_directory(package_name)
     absolute_file_path = os.path.join(package_path, file_path)
-
     try:
         with open(absolute_file_path, 'r') as file:
             return file.read()
-    except OSError:  # parent of IOError, OSError *and* WindowsError where available
+    except OSError:
         return None
-
 
 def load_yaml(package_name, file_path):
     package_path = get_package_share_directory(package_name)
     absolute_file_path = os.path.join(package_path, file_path)
-
     try:
         with open(absolute_file_path, 'r') as file:
             return yaml.safe_load(file)
-    except OSError:  # parent of IOError, OSError *and* WindowsError where available
+    except OSError:
         return None
 
-def generate_launch_description():
-    args = []
-    if (len(sys.argv) >= 5):
-        i = 4
-        while i < len(sys.argv):
-            args.append(sys.argv[i])
-            i = i + 1
+def launch_setup(context, *args, **kwargs):
+    robot_name = LaunchConfiguration('robot_name').perform(context)
 
-    # Configure robot_description
-    moveit_config_path = 'tm5-700_moveit_config'    
-    srdf_path = 'config/tm5-700.srdf'
-    rviz_path = '/launch/run_move_group.rviz'     
+    description_package = f"{robot_name}_description"
+    moveit_config_package = f"{robot_name}_moveit_config"
+    gazebo_package = f"{robot_name}_gazebo"
 
-    # Robot SDF Description
-    pkg_project_description = get_package_share_directory('tm_description')
-    robot_description_config  =  xacro.process_file(os.path.join(pkg_project_description, 'models', 'tm5-700', 'model.sdf'))
+    robot_description_pkg = get_package_share_directory(description_package)
+    moveit_config_path = get_package_share_directory(moveit_config_package)
+    gazebo_package_path = get_package_share_directory(gazebo_package)
+    ros_gz_sim_path = get_package_share_directory('ros_gz_sim')
+
+    # Robot Description
+    xacro_path = os.path.join(robot_description_pkg, 'xacro', f'{robot_name}.urdf.xacro')
+    robot_description_config = xacro.process_file(xacro_path)
     robot_description = {'robot_description': robot_description_config.toxml()}
 
-    # SRDF Configuration
-    robot_description_semantic_config = load_file(moveit_config_path, srdf_path)
+    # SRDF
+    robot_description_semantic_config = load_file(moveit_config_package, f'config/{robot_name}.srdf')
     robot_description_semantic = {'robot_description_semantic': robot_description_semantic_config}
 
     # Kinematics
-    kinematics_yaml = load_yaml(moveit_config_path, 'config/kinematics.yaml')
+    kinematics_yaml = load_yaml(moveit_config_package, 'config/kinematics.yaml')
     robot_description_kinematics = {'robot_description_kinematics': kinematics_yaml}
 
-    # Planning Configuration
+    # OMPL Planning
     ompl_planning_pipeline_config = {
         'planning_pipelines': ['ompl'],
         'ompl': {
             'planning_plugin': 'ompl_interface/OMPLPlanner',
-            'request_adapters': """default_planner_request_adapters/AddTimeOptimalParameterization default_planner_request_adapters/FixWorkspaceBounds default_planner_request_adapters/FixStartStateBounds default_planner_request_adapters/FixStartStateCollision default_planner_request_adapters/FixStartStatePathConstraints""",
+            'request_adapters': """default_planner_request_adapters/AddTimeOptimalParameterization \
+                                    default_planner_request_adapters/FixWorkspaceBounds \
+                                    default_planner_request_adapters/FixStartStateBounds \
+                                    default_planner_request_adapters/FixStartStateCollision \
+                                    default_planner_request_adapters/FixStartStatePathConstraints""",
             'start_state_max_bounds_error': 0.1,
         },
     }
-    ompl_planning_yaml = load_yaml(moveit_config_path, 'config/ompl_planning.yaml')
+    ompl_planning_yaml = load_yaml(moveit_config_package, 'config/ompl_planning.yaml')
     ompl_planning_pipeline_config['ompl'].update(ompl_planning_yaml)
 
-    # Trajectory Execution Configuration
-    controllers_yaml = load_yaml(moveit_config_path, 'config/controllers.yaml')
-    moveit_controllers = {'moveit_simple_controller_manager': controllers_yaml, 'moveit_controller_manager': 'moveit_simple_controller_manager/MoveItSimpleControllerManager'}
+    # Controllers
+    controllers_yaml = load_yaml(moveit_config_package, 'config/controllers.yaml')
+    moveit_controllers = {
+        'moveit_simple_controller_manager': controllers_yaml,
+        'moveit_controller_manager': 'moveit_simple_controller_manager/MoveItSimpleControllerManager'
+    }
 
-    # Trajectory Execution Functionality
+    # Joint Limits
+    joint_limits_yaml = {
+        'robot_description_planning': load_yaml(
+            moveit_config_package, 'config/joint_limits.yaml')
+    }
+
+    # Other params
     trajectory_execution = {
         'moveit_manage_controllers': True,
         'trajectory_execution.allowed_execution_duration_scaling': 1.2,
         'trajectory_execution.allowed_goal_duration_margin': 0.5,
         'trajectory_execution.allowed_start_tolerance': 0.1,
     }
-
-    # Planning scene
     planning_scene_monitor_parameters = {
         'publish_planning_scene': True,
         'publish_geometry_updates': True,
@@ -106,47 +98,25 @@ def generate_launch_description():
         'publish_transforms_updates': True,
     }
 
-    # Joint limits
-    joint_limits_yaml = {
-        'robot_description_planning': load_yaml(
-            moveit_config_path, 'config/joint_limits.yaml'
-        )
-    }
-
-    # Gazebo World and Simulator
-    pkg_project_gazebo = get_package_share_directory('tm_gazebo')
-    pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
-
-    gz_sim_DART = IncludeLaunchDescription(
+    # Launch Nodes
+    gz_sim = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py')),
+            os.path.join(ros_gz_sim_path, 'launch', 'gz_sim.launch.py')),
         launch_arguments=[
-            ('gz_args', f"-r {pkg_project_gazebo}/worlds/tm5-700.sdf")
+            ('gz_args', f"-r {gazebo_package_path}/worlds/{robot_name}.sdf --physics-engine gz-physics-bullet-featherstone-plugin")
         ],
     )
-
-    gz_sim_bullet_featherstone = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py')),
-        launch_arguments=[
-            ('gz_args', f"-r {pkg_project_gazebo}/worlds/tm5-700.sdf --physics-engine gz-physics-bullet-featherstone-plugin")
-        ],
-    )
-
-    # ROS <--> Gazebo Sim Communication Bridge
-    pkg_project_bringup = get_package_share_directory('tm_gazebo')
 
     bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
         parameters=[{
-            'config_file': os.path.join(pkg_project_bringup, 'config', 'tm5-700_bridge.yaml'),
+            'config_file': os.path.join(gazebo_package_path, 'config', f'{robot_name}_bridge.yaml'),
             'qos_overrides./tf_static.publisher.durability': 'transient_local',
         }],
         output='screen'
     )
 
-    # Start the actual move_group node/action server
     run_move_group_node = Node(
         package='moveit_ros_move_group',
         executable='move_group',
@@ -155,7 +125,7 @@ def generate_launch_description():
         parameters=[
             robot_description,
             robot_description_semantic,
-            robot_description_kinematics,           
+            robot_description_kinematics,
             ompl_planning_pipeline_config,
             trajectory_execution,
             moveit_controllers,
@@ -165,10 +135,7 @@ def generate_launch_description():
         ],
     )
 
-    # RViz configuration
-    rviz_config_file = (
-        get_package_share_directory(moveit_config_path) + rviz_path
-    )
+    rviz_config_file = os.path.join(moveit_config_path, 'launch', 'run_move_group.rviz')
     rviz_node = Node(
         package='rviz2',
         executable='rviz2',
@@ -185,16 +152,6 @@ def generate_launch_description():
         ],
     )
 
-    # Static TF
-    static_tf = Node(
-        package='tf2_ros',
-        executable='static_transform_publisher',
-        name='static_transform_publisher',
-        output='log',
-        arguments=['0.0', '0.0', '0.0', '0.0', '0.0', '0.0', 'world', 'base']
-    )
-
-    # Publish TF
     robot_state_publisher = Node(
         package='robot_state_publisher',
         executable='robot_state_publisher',
@@ -203,35 +160,59 @@ def generate_launch_description():
         parameters=[robot_description]
     )
 
-    load_arm_controller = launch_ros.actions.Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=["tmr_arm_controller"],
+    joint_state_publisher = Node(
+        package="joint_state_publisher",
+        executable="joint_state_publisher",
+        name="joint_state_publisher",
+        parameters=[robot_description],
         output="screen",
     )
 
-    load_hand_controller = launch_ros.actions.Node(
+    load_arm_controller = Node(
         package="controller_manager",
         executable="spawner",
-        arguments=["hand_controller"],
+        arguments=[f"{robot_name}_arm_controller"],
         output="screen",
     )
 
-    set_sim_time = SetParameter(
-        name="use_sim_time",
-        value=True
+    load_hand_controller = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=[f"{robot_name}_hand_controller"],
+        output="screen",
     )
 
-    # Launching all the nodes
-    return LaunchDescription(
-        [
-            gz_sim_DART,
-            bridge,
-            rviz_node,
-            static_tf,
-            robot_state_publisher,
-            run_move_group_node,
-            load_arm_controller,
-            set_sim_time,
-        ]
+    spawn_entity = Node(
+        package="ros_gz_sim",
+        executable="create",
+        arguments=[
+            "-name", robot_name,
+            "-topic", "/robot_description",
+            "-x", "0.0",
+            "-y", "0.0",
+            "-z", "1.0",
+        ],
+        output="screen",
     )
+
+    return [
+        gz_sim,
+        spawn_entity,
+        bridge,
+        rviz_node,
+        robot_state_publisher,
+        joint_state_publisher,
+        run_move_group_node,
+        load_arm_controller,
+        load_hand_controller,
+    ]
+
+def generate_launch_description():
+    return LaunchDescription([
+        DeclareLaunchArgument(
+            'robot_name',
+            default_value='tm5-700',
+            description='Name of the robot to launch (used to locate packages and files).'
+        ),
+        OpaqueFunction(function=launch_setup),
+    ])
