@@ -7,6 +7,7 @@
   <xacro:arg name="trans_hw_iface" default="hardware_interface/PositionJointInterface" />
 
   <xacro:include filename="$(find tm_description)/xacro/macro.gazebo.xacro" />
+  <xacro:include filename="$(find tm_description)/xacro/macro.ros2_control.xacro" />
   <xacro:include filename="$(find tm_description)/xacro/macro.transmission.xacro" />
   <xacro:include filename="$(find tm_description)/xacro/macro.materials.xacro" />
 
