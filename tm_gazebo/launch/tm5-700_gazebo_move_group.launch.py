@@ -33,9 +33,10 @@ def load_yaml(package_name, file_path):
 def launch_setup(context, *args, **kwargs):
     robot_name = LaunchConfiguration('robot_name').perform(context)
 
-    description_package = f"{robot_name}_description"
+    # description_package = f"{robot_name}_description"
+    description_package = "tm_description"
     moveit_config_package = f"{robot_name}_moveit_config"
-    gazebo_package = f"{robot_name}_gazebo"
+    gazebo_package = "tm_gazebo"
 
     robot_description_pkg = get_package_share_directory(description_package)
     moveit_config_path = get_package_share_directory(moveit_config_package)
@@ -171,16 +172,16 @@ def launch_setup(context, *args, **kwargs):
     load_arm_controller = Node(
         package="controller_manager",
         executable="spawner",
-        arguments=[f"{robot_name}_arm_controller"],
+        arguments=["tmr_arm_controller"],
         output="screen",
     )
 
-    load_hand_controller = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=[f"{robot_name}_hand_controller"],
-        output="screen",
-    )
+    # load_hand_controller = Node(
+    #     package="controller_manager",
+    #     executable="spawner",
+    #     arguments=[f"{robot_name}_hand_controller"],
+    #     output="screen",
+    # )
 
     spawn_entity = Node(
         package="ros_gz_sim",
@@ -204,7 +205,7 @@ def launch_setup(context, *args, **kwargs):
         joint_state_publisher,
         run_move_group_node,
         load_arm_controller,
-        load_hand_controller,
+        # load_hand_controller,
     ]
 
 def generate_launch_description():
