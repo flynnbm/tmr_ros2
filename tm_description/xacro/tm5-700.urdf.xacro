@@ -21,6 +21,7 @@
   <!--  -->
   <xacro:tmr_gazebo ns="$(arg ns)" prefix="$(arg prefix)" />
   <xacro:tmr_transmission prefix="$(arg prefix)" hw_iface="$(arg trans_hw_iface)" />
+  <xacro:tm5-700_ros2_control ns="$(arg ns)" prefix="$(arg prefix)" />
   <xacro:tmr_materials/>
 
 
