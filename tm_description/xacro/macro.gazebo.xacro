@@ -3,7 +3,7 @@
 
   <xacro:macro name="tmr_gazebo" params="ns prefix">
 
-    <gazebo reference="${prefix}link_1">
+    <!-- <gazebo reference="${prefix}link_1">
       <selfCollide>true</selfCollide>
     </gazebo>
     <gazebo reference="${prefix}link_2">
@@ -20,12 +20,16 @@
     </gazebo>
     <gazebo reference="${prefix}link_6">
       <selfCollide>true</selfCollide>
-    </gazebo>
+    </gazebo> -->
 
     <gazebo>
-      <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
-        <robotNamespace>/${ns}</robotNamespace>
-        <robotSimType>gazebo_ros_control/DefaultRobotHWSim</robotSimType>
+      <plugin name='gz_ros2_control::GazeboSimROS2ControlPlugin' filename='libgz_ros2_control-system.so'>
+        <parameters>$(find tm5-700_moveit_config)/config/ros2_controllers.yaml</parameters>
+      </plugin>
+
+      <plugin
+        filename="gz-sim-joint-state-publisher-system"
+        name="gz::sim::systems::JointStatePublisher">
       </plugin>
     </gazebo>
 
